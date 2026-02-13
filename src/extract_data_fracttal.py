@@ -1,0 +1,198 @@
+import requests
+import polars as pl
+import numpy as np
+from datetime import datetime
+from .utils import schema_work_orders, schema_work_orders_2, equalize_dict_values_length, wo_cancelled
+
+def normalizar_centro_costos(df, columna="centro_costos"):
+    return df.with_columns(
+        pl.col(columna)
+        .str.strip_chars()
+        .str.replace_all(r"\s*\(\s*\d*\s*\)", "")
+        .str.replace_all(r"\s+", " ")
+        .str.strip_chars()
+        .str.to_lowercase()
+        .str.replace_all("á", "a")
+        .str.replace_all("é", "e")
+        .str.replace_all("í", "i")
+        .str.replace_all("ó", "o")
+        .str.replace_all("ú", "u")
+        .str.replace_all("ñ", "n")
+        .str.replace_all("_", " ")
+        .str.strip_chars()
+        .alias(f"{columna}")
+    )
+
+def extract_wo_api(since_date:str, until_date:str) -> pl.DataFrame:
+    print("\nSe extraerán los datos de las ordenes de trabajo a travez de la API.")
+            
+    ot_df = pl.DataFrame(schema=schema_work_orders_2)
+
+    url = "https://one.fracttal.com/oauth/token"
+    credentials = ("D9frr5RgJ1OPEtek3c", "ZEafqjXoOm2OsEnorvWssT9yd3p5JmGA")
+    data = {"grant_type": "client_credentials"}
+    response = requests.post(url, auth=credentials, data=data)
+    status_code = response.status_code  
+
+    if status_code == 200:
+        response_json = response.json()
+        token = response_json.get("access_token")
+
+        print("\nSe ha establecido la conexión y se generó el token.")
+    else:
+        print("Error al obtener el token. Código de estado:", status_code)
+        return 
+    
+    headers = {
+        "Authorization": f"Bearer {token}"}
+
+    count = 0
+
+    numero_final = 1000000
+
+    array = np.arange(0, numero_final + 1, 100)
+
+    for i in array:        
+
+        count = count + 1
+
+        print(f"\nIteración {count}")
+
+        url_object = "https://app.fracttal.com/api/work_orders"
+        
+        params = {
+            "since" : since_date,
+            "until" : until_date,
+            "type_date": "date_maintenance",
+            "start" : i,
+            "limit" : 100            
+        }
+        
+
+        try:
+            r = requests.get(url_object, headers=headers, params=params)
+            print(r)
+            data_raw = r.json()["data"]
+        except:            
+            #r = requests.get(url_object, headers=headers, params=params)
+            #data_raw = r.json()["data"]
+            print("No se encontraron datos")
+            continue
+
+
+        if data_raw:
+            print("\nSe extraerán datos.")
+            dict_data = {}            
+            try:
+                for j in data_raw:
+                    #print("\nLista de columnas:")                                                  
+                    data = dict(j)
+                    keys = data.keys()
+                    keys_2 = dict_data.keys()
+                    for key in keys:
+                        #print(f"\t-{key}: {data[key]}")
+                        if key not in keys_2:
+                            dict_data.update({key:[]})
+                        dict_data[key].append(data[key])            
+            except Exception as e:
+                print(f"\nError al extraer datos: {e}")
+
+            try:                
+                print(dict_data["children"])
+                if len(dict_data["children"]) != len(dict_data["id_work_order"]):
+                    dict_data = equalize_dict_values_length(dict_data)
+                    print(len(dict_data["children"]))
+            except Exception as e:
+                print(f"\nNo existe children. Error: {e}")
+    
+            try:  
+                df = pl.DataFrame(dict_data, schema=schema_work_orders, strict=False)
+            except Exception as e:
+                print(e)
+                df = pl.DataFrame(dict_data, schema=schema_work_orders_2, strict=False)
+
+            if "children" not in df.columns:
+                df = (
+                    df
+                    .with_columns(pl.lit(None).alias("children"))
+                )
+            
+            ot_df = pl.concat([ot_df, df])
+            print(f"\nDatos extraídos en la iteración {count}")
+            
+        else:
+            print("No hay más datos disponibles.")
+            break   
+    
+    input_date_format = "%Y-%m-%dT%H:%M:%S%.f%:z"
+
+    ot_df = (
+        ot_df
+        .with_columns(
+            pl.col("creation_date").str.to_datetime(format=input_date_format).dt.convert_time_zone("America/Santiago"),
+            pl.col("initial_date").str.to_datetime(format=input_date_format).dt.convert_time_zone("America/Santiago"),
+            pl.col("final_date").str.to_datetime(format=input_date_format).dt.convert_time_zone("America/Santiago"),
+            pl.col("cal_date_maintenance").str.to_datetime(format=input_date_format).dt.convert_time_zone("America/Santiago"),
+            pl.col("date_maintenance").str.to_datetime(format=input_date_format).dt.convert_time_zone("America/Santiago"),
+            pl.col("first_date_task").str.to_datetime(format=input_date_format).dt.convert_time_zone("America/Santiago"),
+            pl.col("wo_final_date").str.to_datetime(format=input_date_format).dt.convert_time_zone("America/Santiago"),
+            pl.col("event_date").str.to_datetime(format=input_date_format).dt.convert_time_zone("America/Santiago"),
+            pl.col("review_date").str.to_datetime(format=input_date_format).dt.convert_time_zone("America/Santiago")
+        )
+    )
+
+    ot_df = (
+        ot_df
+        .with_columns(
+            pl.col("creation_date").dt.strftime("%Y-%m-%d %H:%M").str.to_datetime(),
+            pl.col("initial_date").dt.strftime("%Y-%m-%d %H:%M").str.to_datetime(),
+            pl.col("final_date").dt.strftime("%Y-%m-%d %H:%M").str.to_datetime(),
+            pl.col("cal_date_maintenance").dt.strftime("%Y-%m-%d %H:%M").str.to_datetime(),
+            pl.col("date_maintenance").dt.strftime("%Y-%m-%d %H:%M").str.to_datetime(),
+            pl.col("first_date_task").dt.strftime("%Y-%m-%d %H:%M").str.to_datetime(),
+            pl.col("wo_final_date").dt.strftime("%Y-%m-%d %H:%M").str.to_datetime(),
+            pl.col("event_date").dt.strftime("%Y-%m-%d %H:%M").str.to_datetime(),
+            pl.col("review_date").dt.strftime("%Y-%m-%d %H:%M").str.to_datetime()
+        )
+    )
+
+    ot_df = (
+        ot_df
+        .filter(~pl.col("wo_folio").is_in(wo_cancelled))
+    )
+
+    ot_df = (
+        normalizar_centro_costos(ot_df, "costs_center_description")
+    )
+
+    return ot_df
+
+def extract_wo_dyr(date_to_fracttal:datetime) -> pl.DataFrame:
+    print("\nSe extraerán los datos de las ordenes de trabajo desde el almacen de datos de DYR.")
+    df_wo = pl.read_parquet("../stage/reasults/work_orders.parquet")
+    df_wo = (
+        df_wo
+        .filter(pl.col("creation_date") >= date_to_fracttal)
+    )
+
+    return df_wo
+
+if __name__ == "__main__":
+    import calendar
+    since_date = "2026-01-01T00:00:00-03"
+    # Convertir a datetime
+    fecha = datetime.fromisoformat(since_date)
+
+    # Obtener el último día del mes
+    ultimo_dia = calendar.monthrange(fecha.year, fecha.month)[1]
+
+    # Crear fecha final con 23:59:59
+    fecha_final = fecha.replace(day=ultimo_dia, hour=23, minute=59, second=59)
+
+    # Convertir a string con formato correcto
+    until_date = fecha_final.strftime('%Y-%m-%dT%H:%M:%S') + "-03"
+
+    df = extract_wo_api(since_date, until_date)
+    print(df)
+    df.write_excel("test")
+    #df.write_parquet("results/work_orders.parquet")
