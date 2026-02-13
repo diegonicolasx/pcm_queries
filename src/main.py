@@ -4,7 +4,7 @@ from .transform_monthly_calculated_data import transform_monthly_calculated_data
 from .get_kpi import get_kpi
 from .print_google_sheet import print_google_sheet
 
-print("\nBienvenido al programa de extracción de datos de Fracttal para PMC.")
+print("\nBienvenido al programa de extracción de datos de Fracttal para PCM.")
 
 print("\nPara extraer los datos, se le pedirá ingresar el año y el mes deseado.")
 
