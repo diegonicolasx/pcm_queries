@@ -36,11 +36,11 @@ print("\nAhora, por favor identifiquese, de acuerdo al número que aparece junto
 print("\t1. Diego Gallegos (DYR)")
 print("\t2. Fernaando Vera.")
 print("\t3. Vittorio Neira.")
-user_number = int(input("\nIngrese el número correspondiente a su nombre: "))
+user_number = input("\nIngrese el número correspondiente a su nombre: ")
 
-while user_number not in [1, 2, 3]:
+while user_number not in ["1", "2", "3"]:
     print("Número no válido. Por favor, intente nuevamente.")
-    user_number = int(input("\nIngrese el número correspondiente a su nombre: "))
+    user_number = input("\nIngrese el número correspondiente a su nombre: ")
 
 print("\nSe comenzará la extracción de datos, por favor espere...\n")
 
@@ -60,6 +60,6 @@ print(f"\nSe han calculado los KPIs, ahora se mostrarán los mismos:\n{kpi_dict}
 
 print("\nFinalmente, se imprimirán los datos en la hoja de Google Sheets, por favor espere...\n")
 
-print_google_sheet(df_final, kpi_dict, year, month, test=True)
+print_google_sheet(df_final, kpi_dict, year, month, test=False)
 
 print("\nSe han impreso los datos en la hoja de Google Sheets, el proceso ha finalizado exitosamente.")

@@ -16,7 +16,7 @@ def print_google_sheet(df:pl.DataFrame, resumen_ot:Dict[str, Dict[str, int]], ye
     sheet_name = f"{'Test ' if test else ''}{MONTHS.get(month)} 1M ({year})"       
 
     scope = ["https://www.googleapis.com/auth/spreadsheets"]
-    creds = Credentials.from_service_account_file('src/key/etl-sheets-478214-1b88c98e03c9.json', scopes=scope)
+    creds = Credentials.from_service_account_file('src/key/credentials.json', scopes=scope)
     gc = gspread.authorize(creds)
     sh = gc.open_by_key(SHEET_KEY)    
     existing_sheets = {sheet.title: sheet for sheet in sh.worksheets()}
@@ -50,11 +50,11 @@ def print_google_sheet(df:pl.DataFrame, resumen_ot:Dict[str, Dict[str, int]], ye
     }
     
     worksheet.format('A1:B1', header_format)
-    worksheet.format('G1:J1', header_format)
+    worksheet.format('H1:L1', header_format)
 
     header_format.update({"backgroundColor": {"red": 1.0, "green": 0.6, "blue": 0.0}})  # Naranjo
 
-    worksheet.format('C1:F1', header_format)
+    worksheet.format('C1:G1', header_format)
 
      # 2. Formato de fondo y bordes para todas las filas de datos (dinámico)
     if num_rows > 1:  # Si hay datos además del encabezado        
@@ -66,7 +66,7 @@ def print_google_sheet(df:pl.DataFrame, resumen_ot:Dict[str, Dict[str, int]], ye
                     "startRowIndex": 1,  # Desde fila 2 (índice 1)
                     "endRowIndex": num_rows,
                     "startColumnIndex": 0,  # Columna A
-                    "endColumnIndex": 10  # Hasta columna J
+                    "endColumnIndex": 12  # Hasta columna J
                 },
                 "cell": {
                     "userEnteredFormat": {
@@ -91,10 +91,10 @@ def print_google_sheet(df:pl.DataFrame, resumen_ot:Dict[str, Dict[str, int]], ye
     amarillo_ot_proceso = {"red": 1.0, "green": 0.725, "blue": 0.0}
     azul_ot_revision = {"red": 0.039, "green": 0.325, "blue": 0.659}
     
-    status_columns_indices = [6, 7, 8, 9]  # G, H, I, J (índices 0-based)
+    status_columns_indices = [7, 8, 9, 10, 11]  # H, I, J, K, L (índices 0-based)
     
     # Obtener valores actuales para identificar celdas con contenido
-    cells = worksheet.get('G2:J' + str(num_rows))
+    cells = worksheet.get('H2:L' + str(num_rows))
     
     validation_requests = []
     conditional_format_requests = []
@@ -103,7 +103,7 @@ def print_google_sheet(df:pl.DataFrame, resumen_ot:Dict[str, Dict[str, int]], ye
         for row_idx in range(1, num_rows):  # Desde fila 2 (índice 1)
             # Verificar si la celda tiene contenido
             data_row_idx = row_idx - 1
-            data_col_idx = col_idx - 6
+            data_col_idx = col_idx - 7
             
             cell_value = ""
             if data_row_idx < len(cells) and data_col_idx < len(cells[data_row_idx]):
@@ -283,7 +283,7 @@ def print_google_sheet(df:pl.DataFrame, resumen_ot:Dict[str, Dict[str, int]], ye
     data = [headers]    
     
     for equipo in equipos:
-        equipo_nombre = equipo.split('-')[0]  # MTM, MTB, OPE, SSMA
+        equipo_nombre = equipo.split('-')[0]  # MTM, MTB, OPE, SSMA, LAO
         fila = [equipo_nombre]
         for estado in estados:
             fila.append(resumen_ot[equipo].get(estado, 0))

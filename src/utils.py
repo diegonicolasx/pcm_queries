@@ -65,11 +65,13 @@ def end_date(since_date:str)->str:
 
     return until_date
 
-def add_portfolio_and_name(df:pl.DataFrame, user_number:int)->pl.DataFrame:
-    if user_number == 1:
+def add_portfolio_and_name(df:pl.DataFrame, user_number:str)->pl.DataFrame:
+    if user_number == "1":
         results = Path(r"C:\OENERGY Dropbox\0600-O&M\611 - Datos y reportería\projects\stage\results")
-    elif user_number == 2:
-        results = Path(r"C:\Users\OE_FV\OENERGY Dropbox\0600-O&M\611 - Datos y reportería\projects\stage\results")    
+    elif user_number == "2":
+        results = Path(r"C:\Users\OE_FV\OENERGY Dropbox\0600-O&M\611 - Datos y reportería\projects\stage\results")
+    elif user_number == "3":
+        results = Path(r"C:\Users\OE_VN\OENERGY Dropbox\0600-O&M\611 - Datos y reportería\projects\stage\results")    
 
     plant_db = pl.read_parquet(results / "plant_db.parquet").select(pl.col("fracttal_name"), pl.col("portfolio"), pl.col("rcc_name"))
 
@@ -86,6 +88,7 @@ def filter_team(df:pl.DataFrame, team:str)->pl.DataFrame:
         "MTB-Mantenimiento Mayor":["OT MTB IVC", "Status MTB"],
         "OPE-Centro De Control":["OT OPE remoto", "Status OPE"],        
         "SSMA-Salud, Seguridad y Medio Ambiente":["OT SSMA", "Status SSMA"],
+        "LAO-Lavado, Aseo y Ornato":["OT LAO", "Status LAO"],
     }
 
     df_team = (

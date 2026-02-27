@@ -26,18 +26,23 @@ def get_kpi(df:pl.DataFrame) -> dict:
             "OT en Revisión": 0,
             "OT Finalizada": 0,
             "Sin estado": 0
+        },
+        "LAO-Lavado, Aseo y Ornato": {
+            "OT en Proceso": 0,
+            "OT en Revisión": 0,
+            "OT Finalizada": 0,
+            "Sin estado": 0
         }
     }
 
     df = (
         df
         .filter(
-            (pl.col("trigger_description") == "DATE$EVERY$1$MONTHS") &
-            (pl.col("id_status_work_order") != 4)
-        )
-        .select(
-            #pl.col("portfolio"),
-            #pl.col("rcc_name"),
+            (pl.col("id_status_work_order") != 4) &
+            ((pl.col("trigger_description") == "DATE$EVERY$1$MONTHS") |
+             (pl.col("tasks_log_types_description") == "LAO-Lavado, Aseo y Ornato"))
+        )    
+        .select(            
             pl.col("tasks_log_types_description"),
             pl.col("wo_folio"),
             pl.col("id_status_work_order"),
