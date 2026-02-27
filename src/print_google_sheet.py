@@ -1,10 +1,19 @@
 import gspread
 import polars as pl
+import os
+from dotenv import load_dotenv
 from google.oauth2.service_account import Credentials
 from typing import Dict
 
+load_dotenv()
+
+COLUMN_HEADER_DISPLAY = {
+    "OT LAO": "OT LAO\n(corte - lavado)",
+}
+
+
 def print_google_sheet(df:pl.DataFrame, resumen_ot:Dict[str, Dict[str, int]], year:str, month:str, test:bool)->None:
-    SHEET_KEY = "1LRVIhNXI1fDsRAoSTSbxGt3bhSuQlmkCCDziqYJ5I1o"
+    SHEET_KEY = os.getenv("SHEET_KEY")
 
     MONTHS = {
         "1": "Enero", "2": "Febrero", "3": "Marzo", 
@@ -29,7 +38,9 @@ def print_google_sheet(df:pl.DataFrame, resumen_ot:Dict[str, Dict[str, int]], ye
 
     sh.add_worksheet(title=sheet_name, rows="500", cols="40")
     worksheet = sh.worksheet(sheet_name)
-    data = [df.columns] + df.to_numpy().tolist()
+    # Traducir nombres de columnas al texto de display (con \n si aplica)
+    display_headers = [COLUMN_HEADER_DISPLAY.get(col, col) for col in df.columns]
+    data = [display_headers] + df.to_numpy().tolist()
     worksheet.update('A1', data)
 
      # === FORMATO ===
@@ -239,8 +250,7 @@ def print_google_sheet(df:pl.DataFrame, resumen_ot:Dict[str, Dict[str, int]], ye
         # Encontrar el texto más largo en la columna        
         max_length = 0        
         for row in all_values:
-            #if col_index < len(row):
-            cell_length = len(str(row[col_index]))
+            cell_length = max(len(line) for line in str(row[col_index]).split("\n"))
             max_length = max(max_length, cell_length)
     
         # Calcular ancho (aproximado: 10 píxeles por carácter + padding)        
@@ -377,10 +387,10 @@ def print_google_sheet(df:pl.DataFrame, resumen_ot:Dict[str, Dict[str, int]], ye
 def test()->None:
     sheet_name = "DYR test"
     scope = ["https://www.googleapis.com/auth/spreadsheets"]
-    creds = Credentials.from_service_account_file('src/key/etl-sheets-478214-1b88c98e03c9.json', scopes=scope)
+    creds = Credentials.from_service_account_file('key/credentials.json', scopes=scope)
     gc = gspread.authorize(creds)
-    sh_key = "1LRVIhNXI1fDsRAoSTSbxGt3bhSuQlmkCCDziqYJ5I1o"
-    sh = gc.open_by_key(sh_key)
+    SHEET_KEY = os.getenv("SHEET_KEY")
+    sh = gc.open_by_key(SHEET_KEY)
     sheets = sh.worksheets()    
     if sheet_name not in [sheet.title for sheet in sheets]:
         print("\nNo existe la hoja de cálculo, se creará una nueva.")

@@ -2,46 +2,20 @@ import requests
 import polars as pl
 import numpy as np
 from datetime import datetime
-from .utils import schema_work_orders, schema_work_orders_2, equalize_dict_values_length, wo_cancelled
-
-def normalizar_centro_costos(df, columna="centro_costos"):
-    return df.with_columns(
-        pl.col(columna)
-        .str.strip_chars()
-        .str.replace_all(r"\s*\(\s*\d*\s*\)", "")
-        .str.replace_all(r"\s+", " ")
-        .str.strip_chars()
-        .str.to_lowercase()
-        .str.replace_all("á", "a")
-        .str.replace_all("é", "e")
-        .str.replace_all("í", "i")
-        .str.replace_all("ó", "o")
-        .str.replace_all("ú", "u")
-        .str.replace_all("ñ", "n")
-        .str.replace_all("_", " ")
-        .str.strip_chars()
-        .alias(f"{columna}")
-    )
+from .utils import (
+    schema_work_orders, 
+    schema_work_orders_2, 
+    equalize_dict_values_length,     
+    normalizar_centro_costos,
+    get_token
+)
 
 def extract_wo_api(since_date:str, until_date:str) -> pl.DataFrame:
     print("\nSe extraerán los datos de las ordenes de trabajo a travez de la API.")
             
     ot_df = pl.DataFrame(schema=schema_work_orders_2)
 
-    url = "https://one.fracttal.com/oauth/token"
-    credentials = ("D9frr5RgJ1OPEtek3c", "ZEafqjXoOm2OsEnorvWssT9yd3p5JmGA")
-    data = {"grant_type": "client_credentials"}
-    response = requests.post(url, auth=credentials, data=data)
-    status_code = response.status_code  
-
-    if status_code == 200:
-        response_json = response.json()
-        token = response_json.get("access_token")
-
-        print("\nSe ha establecido la conexión y se generó el token.")
-    else:
-        print("Error al obtener el token. Código de estado:", status_code)
-        return 
+    token = get_token()
     
     headers = {
         "Authorization": f"Bearer {token}"}
@@ -154,28 +128,13 @@ def extract_wo_api(since_date:str, until_date:str) -> pl.DataFrame:
             pl.col("event_date").dt.strftime("%Y-%m-%d %H:%M").str.to_datetime(),
             pl.col("review_date").dt.strftime("%Y-%m-%d %H:%M").str.to_datetime()
         )
-    )
-
-    ot_df = (
-        ot_df
-        .filter(~pl.col("wo_folio").is_in(wo_cancelled))
-    )
+    )    
 
     ot_df = (
         normalizar_centro_costos(ot_df, "costs_center_description")
     )
 
     return ot_df
-
-def extract_wo_dyr(date_to_fracttal:datetime) -> pl.DataFrame:
-    print("\nSe extraerán los datos de las ordenes de trabajo desde el almacen de datos de DYR.")
-    df_wo = pl.read_parquet("../stage/reasults/work_orders.parquet")
-    df_wo = (
-        df_wo
-        .filter(pl.col("creation_date") >= date_to_fracttal)
-    )
-
-    return df_wo
 
 if __name__ == "__main__":
     import calendar

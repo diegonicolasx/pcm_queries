@@ -1,6 +1,46 @@
 import polars as pl
+import requests
+import os
+from dotenv import load_dotenv
 from datetime import datetime
 from pathlib import Path
+
+load_dotenv()
+
+def normalizar_centro_costos(df, columna="centro_costos"):
+    return df.with_columns(
+        pl.col(columna)
+        .str.strip_chars()
+        .str.replace_all(r"\s*\(\s*\d*\s*\)", "")
+        .str.replace_all(r"\s+", " ")
+        .str.strip_chars()
+        .str.to_lowercase()
+        .str.replace_all("á", "a")
+        .str.replace_all("é", "e")
+        .str.replace_all("í", "i")
+        .str.replace_all("ó", "o")
+        .str.replace_all("ú", "u")
+        .str.replace_all("ñ", "n")
+        .str.replace_all("_", " ")
+        .str.strip_chars()
+        .alias(f"{columna}")
+    )
+
+def get_token() -> str:
+    url = "https://one.fracttal.com/oauth/token"
+
+    credentials = (os.getenv("CLIENT_ID"), os.getenv("CLIENT_SECRET"))
+
+    data = {"grant_type": "client_credentials"}
+
+    response = requests.post(url, auth=credentials, data=data)
+
+    if response.status_code != 200:
+        print("Error al obtener el token. Código de estado:", response.status_code)        
+
+    token = response.json().get("access_token")
+
+    return token
 
 def validate_year(year_input:str)->bool:
     """Valida que el año tenga 4 dígitos y sea <= año actual"""
@@ -65,13 +105,13 @@ def end_date(since_date:str)->str:
 
     return until_date
 
-def add_portfolio_and_name(df:pl.DataFrame, user_number:str)->pl.DataFrame:
+def add_portfolio_and_name(df:pl.DataFrame, user_number:str)->pl.DataFrame:    
     if user_number == "1":
-        results = Path(r"C:\OENERGY Dropbox\0600-O&M\611 - Datos y reportería\projects\stage\results")
+        results = Path(os.getenv("DYR_PATH"))
     elif user_number == "2":
-        results = Path(r"C:\Users\OE_FV\OENERGY Dropbox\0600-O&M\611 - Datos y reportería\projects\stage\results")
+        results = Path(os.getenv("FERNANDO_VERA_PATH"))
     elif user_number == "3":
-        results = Path(r"C:\Users\OE_VN\OENERGY Dropbox\0600-O&M\611 - Datos y reportería\projects\stage\results")    
+        results = Path(os.getenv("VITTORIO_PATH"))    
 
     plant_db = pl.read_parquet(results / "plant_db.parquet").select(pl.col("fracttal_name"), pl.col("portfolio"), pl.col("rcc_name"))
 
@@ -91,17 +131,49 @@ def filter_team(df:pl.DataFrame, team:str)->pl.DataFrame:
         "LAO-Lavado, Aseo y Ornato":["OT LAO", "Status LAO"],
     }
 
-    df_team = (
-        df
-        .filter(pl.col("tasks_log_types_description") == team)
-        .select(
-            pl.col("portfolio"),
-            pl.col("rcc_name"),
-            pl.col("wo_folio"),
-            pl.col("id_status_work_order"),
+    if team == "LAO-Lavado, Aseo y Ornato":
+        df_team = (
+            df
+            .filter(pl.col("tasks_log_types_description") == team)
+            .select(
+                pl.col("portfolio"),
+                pl.col("rcc_name"),
+                pl.col("wo_folio"),
+                pl.col("id_status_work_order"),
+                pl.col("description")
+            )
+            .with_columns(
+                    # Crear columna de orden: 1 para Desmalezamiento, 2 para Limpieza
+                    pl.when(pl.col("description").str.starts_with("Desmalezamiento"))
+                    .then(pl.lit(1))
+                    .when((pl.col("description").str.starts_with("Limpieza de módulos fotovoltaicos")) |
+                          (pl.col("description").str.starts_with("Limpieza de modulos fotovoltaicos")))
+                    .then(pl.lit(2))
+                    .otherwise(pl.lit(3))
+                    .alias("orden_tipo")
+                )
+            .drop(pl.col("description"))
+            .unique()   
+            .sort(["portfolio", "rcc_name", "orden_tipo", "wo_folio"])  # Ordenar por tipo
+            .drop(pl.col("orden_tipo"))
+            .with_columns(pl.col("wo_folio").cast(pl.Utf8).alias("wo_folio"))
         )
-        .unique()   
-        .with_columns(pl.col("wo_folio").cast(pl.Utf8).alias("wo_folio"))
+    else:
+        df_team = (
+            df
+            .filter(pl.col("tasks_log_types_description") == team)
+            .select(
+                pl.col("portfolio"),
+                pl.col("rcc_name"),
+                pl.col("wo_folio"),
+                pl.col("id_status_work_order"),
+            )
+            .unique()   
+            .with_columns(pl.col("wo_folio").cast(pl.Utf8).alias("wo_folio"))
+        )
+    
+    df_result =(
+        df_team
         .group_by(["portfolio", "rcc_name"])
         .agg(
             # Concatenamos las OTs con " - " como separador
@@ -124,9 +196,7 @@ def filter_team(df:pl.DataFrame, team:str)->pl.DataFrame:
         )
     )
 
-    return df_team
-
-
+    return df_result
 
 def equalize_dict_values_length(data, fill_value=None):
     max_length = max(len(v) for v in data.values())  # Encontrar el tamaño máximo
@@ -344,477 +414,3 @@ schema_work_orders_2 = {
     "id_company":pl.Int64,
     "children":pl.String
 }
-
-wo_cancelled = [
-    29938,
-    29937,
-    29936,
-    29934,
-    29931,
-    29932,
-    29930,
-    29929,
-    29928,
-    29927,
-    29926,
-    29925,
-    29924,
-    29923,
-    29922,
-    29921,
-    29920,
-    29919,
-    29918,
-    29917,
-    29916,
-    29915,
-    29914,
-    29911,
-    29913,
-    29910,
-    29909,
-    29908,
-    29907,
-    29906,
-    29905,
-    29904,
-    29903,
-    29902,
-    29901,
-    29895,
-    29900,
-    29899,
-    29897,
-    29894,
-    29893,
-    29892,
-    29891,
-    29888,
-    29886,
-    29884,
-    29890,
-    29883,
-    29882,
-    29881,
-    29880,
-    29879,
-    29870,
-    29872,
-    29877,
-    29866,
-    29868,
-    29869,
-    29875,
-    29865,
-    29864,
-    29863,
-    29862,
-    29861,
-    29860,
-    29859,  
-    29858,
-    29857,
-    29856,
-    29855,
-    29854,
-    29850,
-    29851,
-    29852,
-    29849,
-    29847,
-    29846,
-    29845,
-    29844,
-    29843,
-    29842,
-    29840,
-    29841,
-    29839,
-    29836,
-    29838,
-    29835,  
-    29834,
-    29833,
-    29832,
-    29831,
-    29830,
-    29829,
-    29828,
-    29827,
-    29826,
-    29825,
-    29824,
-    29823,
-    29822,
-    29821,
-    29820,
-    29819,
-    29818,
-    29817,
-    29816,
-    29815,
-    29814,
-    29813,
-    29812,
-    29810,
-    29807,
-    29808,
-    29806,
-    29805,
-    29804,
-    29803,
-    29802,
-    29801,
-    29800,
-    29799,
-    29798,
-    29797,
-    29796,
-    29795,
-    29794,
-    29793,
-    29792,
-    29791,
-    29790,
-    29789,
-    29788,
-    29787,
-    29786,
-    29785,
-    29784,
-    29783,
-    29782,
-    29781,
-    29780,
-    29779,
-    29776,
-    29778,
-    29774,
-    29771,
-    29772,
-    29770,
-    29769,
-    29768,
-    29767,
-    29766,
-    29765,
-    29764,
-    29763,
-    29762,
-    29761,
-    29760,
-    29759,
-    29758,
-    29757,
-    29756,
-    29755,
-    29754,
-    29748,
-    29746,
-    29750,
-    29752,
-    29745,
-    29744,
-    29741,
-    29743,
-    29740,
-    29738,
-    29736,
-    29735,
-    29734,
-    29733,
-    29732,
-    29731,
-    29730,
-    29729,
-    29728,
-    29727,
-    29726,
-    29725,
-    29724,
-    29723,
-    29722,
-    29721,
-    29720,
-    29719,
-    29718,
-    29717,
-    29716,
-    29715,
-    29714,
-    29713,
-    29712,
-    29711,
-    29710,
-    29709,
-    29697,
-    29701,
-    29700,
-    29703,
-    29706,
-    29698,
-    29699,
-    29696,
-    29694,
-    29693,
-    29692,
-    29691,
-    29686,
-    29688,
-    29690,
-    29685,
-    29684,
-    29683,
-    29682,
-    29681,
-    29679,
-    29678,
-    29677,
-    29676,
-    29675,
-    29674,
-    29673,
-    29672,
-    29671,
-    29670,
-    29669,
-    29668,
-    29667,
-    29666,
-    29665,
-    29664,
-    29663,
-    29662,
-    29661,
-    29660,
-    29659,
-    29657,
-    29655,
-    29658,
-    29653,
-    29651,
-    29649,
-    29646,
-    29644,
-    29648,
-    29643,
-    29642,
-    29635,
-    29637,
-    29636,
-    29639,
-    29634,
-    29633,
-    29632,
-    29629,
-    29631,
-    29628,
-    29626,
-    29625,
-    29624,
-    29623,
-    29622,
-    29621,
-    29619,
-    29618,
-    29616,
-    29615,
-    29614,
-    29612,
-    29611,
-    29610,
-    29609,
-    29608,
-    29607,
-    29606,
-    29605,
-    29604,
-    29603,
-    29602,
-    29601,
-    29600,
-    29599,
-    29598,
-    29597,
-    29596,
-    29595,
-    29594,
-    29588,
-    29592,
-    29589,
-    29590,
-    29587,
-    29586,
-    29585,
-    29584,
-    29583,
-    29582,
-    29581,
-    29580,
-    29577,
-    29579,
-    29574,
-    29572,
-    29573,
-    29571,
-    29570,
-    29569,
-    29568,
-    29567,
-    29566,
-    29565,
-    29564,
-    29563,
-    29562,
-    29559,
-    29561,
-    29558,
-    29557,
-    29556,
-    29555,
-    29554,
-    29553,
-    29552,
-    29551,
-    29550,
-    29549,
-    29548,
-    29545,
-    29547,
-    29544,
-    29543,
-    29542,
-    29540,
-    29537,
-    29539,
-    29536,
-    29535,
-    29532,
-    29534,
-    29531,
-    29530,
-    29529,
-    29528,
-    29527,
-    29526,
-    29525,
-    29524,
-    29513,
-    29519,
-    29520,
-    29517,
-    29515,
-    29518,
-    29521,
-    29512,
-    29511,
-    29510,
-    29509,
-    29508,
-    29507,
-    29504,
-    29503,
-    29506,
-    29501,
-    29499,
-    29498,
-    29497,
-    29496,
-    29495,
-    29494,
-    29493,
-    29492,
-    29491,
-    29490,
-    29489,
-    29488,
-    29487,
-    29486,
-    29485,
-    29484,
-    29483,
-    29482,
-    29481,
-    29480,
-    29479,
-    29478,
-    29477,
-    29472,
-    29475,
-    29471,
-    29469,
-    29473,
-    29468,
-    29467,
-    29466,
-    29465,
-    29464,
-    29463,
-    29462,
-    29461,
-    29460,
-    29459,
-    29458,
-    29457,
-    29454,
-    29456,
-    29453,
-    29452,
-    29448,
-    29450,
-    29447,
-    29445,
-    29443,
-    29442,
-    29444,
-    29441,
-    29440,
-    29438,
-    29437,
-    29436,
-    29433,
-    29435,
-    29430,
-    29432,
-    29428,
-    29427,
-    29426,
-    29425,
-    29424,
-    29423,
-    29422,
-    29420,
-    29419,
-    29418,
-    29417,
-    29416,
-    29415,
-    29414,
-    29413,
-    29412,
-    29411,
-    29410,
-    29409,
-    29408,
-    29407,
-    29406,
-    29405,
-    29403,
-    29402,
-    29401,
-    29400,
-    29399,
-    29398,
-    29397,
-    29396,
-    29394,
-    29395,
-    29392,
-    29391,
-    29390,
-    29389,
-    29388,
-    31976,
-    28824, #Termografia mal Encon
-    32861 #Termografia mal Frontera
-]
