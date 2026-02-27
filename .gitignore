@@ -3,7 +3,7 @@ examples/
 __pycache__/
 results/
 *.xlsx
-src/key/
+key/
 src/old_main.py
 src/create_tables.py
 src/extract_columns_names.py

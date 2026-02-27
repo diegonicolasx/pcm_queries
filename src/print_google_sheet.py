@@ -16,7 +16,7 @@ def print_google_sheet(df:pl.DataFrame, resumen_ot:Dict[str, Dict[str, int]], ye
     sheet_name = f"{'Test ' if test else ''}{MONTHS.get(month)} 1M ({year})"       
 
     scope = ["https://www.googleapis.com/auth/spreadsheets"]
-    creds = Credentials.from_service_account_file('src/key/credentials.json', scopes=scope)
+    creds = Credentials.from_service_account_file('key/credentials.json', scopes=scope)
     gc = gspread.authorize(creds)
     sh = gc.open_by_key(SHEET_KEY)    
     existing_sheets = {sheet.title: sheet for sheet in sh.worksheets()}
