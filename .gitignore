@@ -10,4 +10,3 @@ src/extract_columns_names.py
 .fenv/
 .vitv/
 .env
-pcm_q/
