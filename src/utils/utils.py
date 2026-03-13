@@ -412,7 +412,7 @@ schema_work_orders_2 = {
     "task_status": pl.String,
     "id_status_work_order_task": pl.String,
     "labels": pl.String,
-    "id_company":pl.Int64,
     "time_disruption": pl.String,
+    "id_company":pl.Int64,
     "children":pl.String
 }

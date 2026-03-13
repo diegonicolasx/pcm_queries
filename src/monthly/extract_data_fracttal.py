@@ -79,7 +79,6 @@ def extract_wo_api(since_date:str, until_date:str) -> pl.DataFrame:
             except Exception as e:
                 print(f"\nNo existe children. Error: {e}")
 
-            print(dict_data)
     
             try:  
                 df = pl.DataFrame(dict_data, schema=schema_work_orders, strict=False)
