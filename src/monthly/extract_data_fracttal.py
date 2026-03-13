@@ -2,7 +2,7 @@ import requests
 import polars as pl
 import numpy as np
 from datetime import datetime
-from .utils import (
+from src.utils.utils import (
     schema_work_orders, 
     schema_work_orders_2, 
     equalize_dict_values_length,     
@@ -78,6 +78,8 @@ def extract_wo_api(since_date:str, until_date:str) -> pl.DataFrame:
                     print(len(dict_data["children"]))
             except Exception as e:
                 print(f"\nNo existe children. Error: {e}")
+
+            print(dict_data)
     
             try:  
                 df = pl.DataFrame(dict_data, schema=schema_work_orders, strict=False)

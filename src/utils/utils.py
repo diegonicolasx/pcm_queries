@@ -322,6 +322,7 @@ schema_work_orders = {
     "task_status": pl.String,
     "id_status_work_order_task": pl.String,
     "labels": pl.String,
+    "time_disruption": pl.String,
     "id_company":pl.Int64,
 }
 
@@ -412,5 +413,6 @@ schema_work_orders_2 = {
     "id_status_work_order_task": pl.String,
     "labels": pl.String,
     "id_company":pl.Int64,
+    "time_disruption": pl.String,
     "children":pl.String
 }
