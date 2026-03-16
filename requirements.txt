@@ -5,6 +5,7 @@ cryptography==46.0.5
 google-auth==2.48.0
 google-auth-oauthlib==1.2.4
 gspread==6.2.1
+gspread-formatting == 1.2.1
 httplib2==0.31.2
 idna==3.11
 numpy==2.4.2
