@@ -46,4 +46,6 @@ def transform_quarterly_calculated_data(df:pl.DataFrame, user_number:str)->pl.Da
         .sort(by = "Parque")
     )
 
+    df_joined = df_joined.fill_null("-")
+
     return df_joined

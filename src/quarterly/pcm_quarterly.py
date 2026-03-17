@@ -1,12 +1,30 @@
 import polars as pl
+import os
 from datetime import datetime
+from src.quarterly.kpi_get import get_kpi
 from src.monthly.extract_data_fracttal import extract_wo_api
 from src.quarterly.transform_quarterly_calculated_data import transform_quarterly_calculated_data
 from src.quarterly.quarterly_sheet import print_quarterly_sheet
 from src.utils.utils import validate_year, init_date, end_date
+from dotenv import load_dotenv
+from pathlib import Path
+
+load_dotenv()
 
 
-def pcm_quarterly():
+def pcm_quarterly(user_number:str):
+
+    if user_number == "1":
+        results = Path(os.getenv("DYR_PATH"))
+    elif user_number == "2":
+        results = Path(os.getenv("FERNANDO_VERA_PATH"))
+    elif user_number == "3":
+        results = Path(os.getenv("VITTORIO_PATH"))    
+
+    parks = pl.read_parquet(results / "plant_db.parquet").filter(pl.col("OM_status")=="Active").select(pl.col("portfolio"), pl.col("rcc_name"))
+    parks = parks.rename({"portfolio":"Portafolio", "rcc_name": "Parque"}).sort("Parque")
+
+
 
     print("\nPara extraer los datos, se le pedirá ingresar el año y el número del trimestre.")
 
@@ -46,15 +64,19 @@ def pcm_quarterly():
 
     df_wo = extract_wo_api(since_date, until_date)
 
-    df_transformated = transform_quarterly_calculated_data(df_wo,"1").sort(by="Portafolio")
+    df_transformated = transform_quarterly_calculated_data(df_wo,user_number)
 
-    print_quarterly_sheet(df_transformated, year, quarter, False)
+    ot_resumen = get_kpi(df_transformated)
+
+    df_transformated = parks.join(df_transformated, on =["Portafolio", "Parque"], how="left").fill_null("-")
+
+    print_quarterly_sheet(df_transformated, ot_resumen, year, quarter, False)
 
 
 
 
 if __name__ == "__main__":
-    pcm_quarterly()
+    pcm_quarterly("1")
 
     
 

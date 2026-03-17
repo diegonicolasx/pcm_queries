@@ -5,12 +5,13 @@ import os
 from dotenv import load_dotenv
 from google.oauth2.service_account import Credentials
 from typing import Dict
+from src.quarterly.utils import get_formato_condicional_request, get_cell_format, chart_graph
 
 load_dotenv()
 
 
 
-def print_quarterly_sheet(df:pl.DataFrame, year:str, quarter:str, test:bool)->None:
+def print_quarterly_sheet(df:pl.DataFrame, resumen_ot:Dict[str, Dict[str, int]], year:str, quarter:str, test:bool)->None:
 
     SHEET_KEY = os.getenv("SHEET_KEY")
 
@@ -76,36 +77,13 @@ def print_quarterly_sheet(df:pl.DataFrame, year:str, quarter:str, test:bool)->No
 
     set_row_height(worksheet, "1", 40)
 
+
      # 2. Formato de fondo y bordes para todas las filas de datos (dinámico)
     if num_rows > 1:  # Si hay datos además del encabezado        
         # Aplicar fondo azul claro y bordes
-        requests = [{
-            "repeatCell": {
-                "range": {
-                    "sheetId": worksheet.id,
-                    "startRowIndex": 1,  # Desde fila 2 (índice 1)
-                    "endRowIndex": num_rows,
-                    "startColumnIndex": 0,  # Columna A
-                    "endColumnIndex": 6  # Hasta columna J
-                },
-                "cell": {
-                    "userEnteredFormat": {
-                        "backgroundColor": {"red": 0.95, "green": 1.0, "blue": 1.0},
-                        "borders": {
-                            "top": {"style": "SOLID", "width": 1, "color": {"red": 0.1, "green": 0.1, "blue": 0.1}},
-                            "bottom": {"style": "SOLID", "width": 1, "color": {"red": 0.1, "green": 0.1, "blue": 0.1}},
-                            "left": {"style": "SOLID", "width": 1, "color": {"red": 0.1, "green": 0.1, "blue": 0.1}},
-                            "right": {"style": "SOLID", "width": 1, "color": {"red": 0.1, "green": 0.1, "blue": 0.1}}
-                        },
-                        "horizontalAlignment": "CENTER",
-                        "verticalAlignment": "MIDDLE"
-                    }
-                },
-                "fields": "userEnteredFormat(backgroundColor,borders,horizontalAlignment,verticalAlignment)"
-            }
-        }]
+        f_cell = get_cell_format(worksheet.id, num_rows)
         
-        sh.batch_update({"requests": requests})
+        sh.batch_update(f_cell)
 
     
     # 4. Ajustar ancho de columnas
@@ -135,33 +113,40 @@ def print_quarterly_sheet(df:pl.DataFrame, year:str, quarter:str, test:bool)->No
         })
 
 
-    rule = {
-        "condition": {
-            "type": "ONE_OF_LIST",
-            "values": [
-                {"userEnteredValue": "OT en Proceso"},
-                {"userEnteredValue": "OT en Revisión"},
-                {"userEnteredValue": "OT Finalizada"}
-            ]
-        },
-        "showCustomUi": True, # Esto habilita el estilo de "chip"
-        "strict": True    }
-
-    requests.append({
-        "setDataValidation": {
-            "range": {
-                "sheetId": worksheet.id,
-                "startRowIndex": 1, 
-                "endRowIndex": num_rows, # Usamos tu variable dinámica
-                "startColumnIndex": 4, 
-                "endColumnIndex": 6
-            },
-            "rule": rule
-        }
-    })
-
 
     sh.batch_update({"requests": requests})
+
+    f_condicional = get_formato_condicional_request(worksheet.id, num_rows)
+
+    sh.batch_update(f_condicional)
+
+    
+
+
+    # === 1. PREPARAR DATOS EN COLUMNAS OCULTAS ===
+    # Usaremos columnas muy a la derecha 
+    start_col_index = 26  # Columna AA    
+
+    equipos = list(resumen_ot.keys())
+    estados = ['OT en Proceso', 'OT en Revisión', 'OT Finalizada']  # Sin "Sin estado" si no quieres mostrarlo
+    
+    # Preparar datos
+    headers = ['Equipo'] + estados
+    data = [headers]    
+    
+    for equipo in equipos:
+        equipo_nombre = equipo.split('-')[0]  # MTM, MTB, OPE, SSMA, LAO
+        fila = [equipo_nombre]
+        for estado in estados:
+            fila.append(resumen_ot[equipo].get(estado, 0))
+        data.append(fila)
+    
+    # Escribir datos en columna AA (oculta)
+    worksheet.update('AA1', data)
+
+    chart_format = chart_graph(worksheet.id, equipos, start_col_index)
+
+    sh.batch_update(chart_format)
 
 
     return 0
