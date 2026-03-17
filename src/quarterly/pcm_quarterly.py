@@ -24,9 +24,11 @@ def pcm_quarterly(user_number:str):
     parks = pl.read_parquet(results / "plant_db.parquet").filter(pl.col("OM_status")=="Active").select(pl.col("portfolio"), pl.col("rcc_name"))
     parks = parks.rename({"portfolio":"Portafolio", "rcc_name": "Parque"}).sort("Parque")
 
+    print("---------------------------------------------------------------------------------------------------------------------------")
 
+    print("Se extraerán los datos trimestrales para PCM")
 
-    print("\nPara extraer los datos, se le pedirá ingresar el año y el número del trimestre.")
+    print("\nPara extraer los datos, se le pedirá ingresar el año y el número del trimestre.\n")
 
     
 
@@ -43,12 +45,21 @@ def pcm_quarterly(user_number:str):
 
     while True:
 
-        print("Escoja el trimestre. Q1: Enero-Marzo, Q2: Abril-Junio, Q3: Julio-Septiembre, Q4: Octubre-Diciembre :")
+        print("\n")
+
+        print("Escoja el trimestre : \n")
+
+        print("\t1. Enero - Marzo")
+        print("\t2. Abril - Junio")
+        print("\t3. Julio - Septiembre")
+        print("\t4. Octubre - Diciembre")
+
+        print("\n")
 
         quarter = input("Ingrese el numero de trimestre: ")
         
         if 1 <= int(quarter) <= 4:
-            print("n")
+            print("\n")
             break
         else:
             print("Trimestre no válido \n")

@@ -1,27 +1,56 @@
 import polars as pl
 from src.monthly.pcm_monthly import pcm_monthly
+from src.quarterly.pcm_quarterly import pcm_quarterly
 
-print("Bienvenido al programa para actualizar las planillas de PCM \n")
+print("\nBienvenido al programa de extracción de datos de Fracttal para PCM. \n")
 
-x = input("¿Desea actualizar las OT's mensuales?. S/N: ")
+print("\nAhora, por favor identifiquese, de acuerdo al número que aparece junto a cada nombre:\n")
+print("\t1. Diego Gallegos (DYR)")
+print("\t2. Fernaando Vera.")
+print("\t3. Vittorio Neira.")
+user_number = input("\nIngrese el número correspondiente a su nombre: ")
+
+while user_number not in ["1", "2", "3"]:
+    print("Número no válido. Por favor, intente nuevamente.")
+    user_number = input("\nIngrese el número correspondiente a su nombre: ")
 
 print("\n")
 
 while True:
 
-    if x.lower() in ["s", "si"]:
-        pcm_monthly()
-        break
+    print("Para actualizar las OT's, ingrese la acción que desea realizar: ")
+    print("\n")
 
-    elif x.lower() in ["n", "no"]:
-        break
+    print("\t1 Actualizar OT's mensuales")
+    print("\t2. Actualizar OT's trimetrales")
+    print("\t3. Ambas")
+
+    print("\n")
+
+
+    x = input("Ingrese su opción: ")
+
+    if x not in ["1", "2", "3"]:
+        print("Opción no valida, por favor ingrese nuevamente \n")
+        print("\n")
+        continue
+
 
     else:
-        print("Opción no valida, por favor ingrese nuevamente \n")
-        x = input("¿Desea actualizar las OT's mensuales?. S/N: ")
-        print("\n")
+        if x == "1":
+            print("Se actualizaran las OT's mensuales \n")
+            pcm_monthly(user_number)
+            break
 
+        elif x =="2":
+            print("Se actualizarán  las OT's trimestrales \n")
+            pcm_quarterly(user_number)
+            break
 
-##### Aca van los trimetrales
+        elif x =="3":
+            print("Se actualizarán OT's mensuales y trimestrales \n")
 
-print("Aloha")
+            pcm_monthly(user_number)
+            pcm_quarterly(user_number)
+
+            break

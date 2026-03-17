@@ -6,10 +6,10 @@ from src.monthly.print_google_sheet import print_google_sheet
 
 ## El main de este programa debe ser capaz de ejecutar el pcm_query tanto para las OT's mensuales como las trimestrales
 
-def pcm_monthly() -> None:
+def pcm_monthly(user_number: str) -> None:
 
-    print("\nBienvenido al programa de extracción de datos de Fracttal para PCM.")
-
+    
+    print("-------------------------------------------------------------------------------------------------------------------------- \n")
     print("\nPara extraer los datos, se le pedirá ingresar el año y el mes deseado.")
 
     print("El programa extraerá datos a partir del año y mes ingresado tomando como referencia la fecha programada para las OT's.\n")
@@ -36,15 +36,7 @@ def pcm_monthly() -> None:
             
     print(f"\nLa fecha de extracción es: {since_date} hasta {until_date}\n")
 
-    print("\nAhora, por favor identifiquese, de acuerdo al número que aparece junto a cada nombre:\n")
-    print("\t1. Diego Gallegos (DYR)")
-    print("\t2. Fernaando Vera.")
-    print("\t3. Vittorio Neira.")
-    user_number = input("\nIngrese el número correspondiente a su nombre: ")
-
-    while user_number not in ["1", "2", "3"]:
-        print("Número no válido. Por favor, intente nuevamente.")
-        user_number = input("\nIngrese el número correspondiente a su nombre: ")
+    
 
     print("\nSe comenzará la extracción de datos, por favor espere...\n")
 
@@ -66,4 +58,4 @@ def pcm_monthly() -> None:
 
     print_google_sheet(df_final, kpi_dict, year, month, test=False)
 
-    print("\nSe han impreso los datos en la hoja de Google Sheets, el proceso ha finalizado exitosamente.")
+    print("\nSe han impreso los datos en la hoja de Google Sheets, el proceso ha finalizado exitosamente. \n")
