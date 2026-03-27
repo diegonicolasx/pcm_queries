@@ -1,6 +1,7 @@
 import gspread
 import polars as pl
 import os
+import copy
 from dotenv import load_dotenv
 from google.oauth2.service_account import Credentials
 from typing import Dict
@@ -301,6 +302,34 @@ def print_google_sheet(df:pl.DataFrame, resumen_ot:Dict[str, Dict[str, int]], ye
     
     # Escribir datos en columna AA (oculta)
     worksheet.update('AA1', data)
+
+    data_2 = copy.deepcopy(data)
+
+    for row in data_2:
+        total_row = sum(val for val in row if isinstance(val, (int, float)))
+        if total_row > 0:
+            for i in range(len(row)):
+                if isinstance(row[i], (int, float)):
+                    row[i] = row[i] / total_row
+
+
+    percentage_format = {
+        "numberFormat": {
+            "type": "PERCENT",
+            "pattern": "0.00%"  # Cambia a "0%" si no quieres decimales
+        },
+        "borders": {
+            "top": {"style": "SOLID", "width": 2, "color": {"red": 0, "green": 0, "blue": 0}},
+            "bottom": {"style": "SOLID", "width": 2, "color": {"red": 0, "green": 0, "blue": 0}},
+            "left": {"style": "SOLID", "width": 2, "color": {"red": 0, "green": 0, "blue": 0}},
+            "right": {"style": "SOLID", "width": 2, "color": {"red": 0, "green": 0, "blue": 0}}
+        },
+        "horizontalAlignment": "CENTER",
+        "verticalAlignment": "MIDDLE"
+    }
+
+    worksheet.format('M111:P116', percentage_format)
+    worksheet.update("M111",data_2)
     
     #Calcular posición vertical (debajo de la tabla)
     requests = []

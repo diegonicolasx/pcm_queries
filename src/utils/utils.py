@@ -108,9 +108,8 @@ def end_date(since_date:str)->str:
 def add_portfolio_and_name(df:pl.DataFrame, user_number:str)->pl.DataFrame:    
     if user_number == "1":
         results = Path(os.getenv("DYR_PATH"))
+
     elif user_number == "2":
-        results = Path(os.getenv("FERNANDO_VERA_PATH"))
-    elif user_number == "3":
         results = Path(os.getenv("VITTORIO_PATH"))    
 
     plant_db = pl.read_parquet(results / "plant_db.parquet").select(pl.col("fracttal_name"), pl.col("portfolio"), pl.col("rcc_name"))

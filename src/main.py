@@ -6,11 +6,10 @@ print("\nBienvenido al programa de extracción de datos de Fracttal para PCM. \n
 
 print("\nAhora, por favor identifiquese, de acuerdo al número que aparece junto a cada nombre:\n")
 print("\t1. Diego Gallegos (DYR)")
-print("\t2. Fernaando Vera.")
-print("\t3. Vittorio Neira.")
+print("\t2. Vittorio Neira.")
 user_number = input("\nIngrese el número correspondiente a su nombre: ")
 
-while user_number not in ["1", "2", "3"]:
+while user_number not in ["1", "2"]:
     print("Número no válido. Por favor, intente nuevamente.")
     user_number = input("\nIngrese el número correspondiente a su nombre: ")
 

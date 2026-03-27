@@ -42,6 +42,8 @@ def pcm_monthly(user_number: str) -> None:
 
     df_wo = extract_wo_api(since_date, until_date)
 
+    print(df_wo)
+
     print("\nSe han extraído los datos, ahora se comenzará con la transformación de los mismos, por favor espere...\n")
 
     df_final = transform_monthly_calculated_data(df_wo, user_number=user_number)
