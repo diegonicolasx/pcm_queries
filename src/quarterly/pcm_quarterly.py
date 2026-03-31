@@ -16,9 +16,8 @@ def pcm_quarterly(user_number:str):
 
     if user_number == "1":
         results = Path(os.getenv("DYR_PATH"))
+
     elif user_number == "2":
-        results = Path(os.getenv("FERNANDO_VERA_PATH"))
-    elif user_number == "3":
         results = Path(os.getenv("VITTORIO_PATH"))    
 
     parks = pl.read_parquet(results / "plant_db.parquet").filter(pl.col("OM_status")=="Active").select(pl.col("portfolio"), pl.col("rcc_name"))
