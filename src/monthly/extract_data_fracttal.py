@@ -140,7 +140,8 @@ def extract_wo_api(since_date:str, until_date:str) -> pl.DataFrame:
     ot_df = ot_df.with_columns(
             pl.when(
                 (pl.col("tasks_log_types_description") == "MTM-Mantenimiento Menor") & 
-                (pl.col("groups_description") == "Baño")
+                (pl.col("groups_description") == "Baño") &
+                (pl.col("groups_1_description").is_in(["Carbonfree chile SPA", "CFC holdings SPA"])) 
             )
             .then(pl.lit("SSMA-Salud, Seguridad y Medio Ambiente"))
             .otherwise(pl.col("tasks_log_types_description"))

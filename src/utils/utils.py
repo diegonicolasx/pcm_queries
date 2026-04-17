@@ -121,16 +121,18 @@ def add_portfolio_and_name(df:pl.DataFrame, user_number:str)->pl.DataFrame:
 
     return df_joined
 
-def filter_team(df:pl.DataFrame, team:str)->pl.DataFrame:
+def filter_team(df:pl.DataFrame, team:str, join_ots = True)->pl.DataFrame:
     dict_teams = {
         "MTM-Mantenimiento Menor":["OT MTM", "Status MTM"],
         "MTB-Mantenimiento Mayor":["OT MTB IVC", "Status MTB"],
         "OPE-Centro De Control":["OT OPE remoto", "Status OPE"],        
         "SSMA-Salud, Seguridad y Medio Ambiente":["OT SSMA", "Status SSMA"],
         "LAO-Lavado, Aseo y Ornato":["OT LAO", "Status LAO"],
+        "LAC-Lavado y Corte de Vegetacion": ["OT LAC", "Status LAC"],
+        "Sin Equipo" : ["OT Sin Equipo", "Status Sin Equipo"]
     }
 
-    if team == "LAO-Lavado, Aseo y Ornato":
+    if team == "LAO-Lavado, Aseo y Ornato" or team == "LAC-Lavado y Corte de Vegetacion":
         df_team = (
             df
             .filter(pl.col("tasks_log_types_description") == team)
@@ -170,30 +172,36 @@ def filter_team(df:pl.DataFrame, team:str)->pl.DataFrame:
             .unique()   
             .with_columns(pl.col("wo_folio").cast(pl.Utf8).alias("wo_folio"))
         )
-    
+
+    if join_ots:
+
+        df_result =(
+            df_team
+            .group_by(["portfolio", "rcc_name"])
+            .agg(
+                # Concatenamos las OTs con " - " como separador
+                pl.col("wo_folio").str.join(delimiter=" - ").alias("wo_folio"),
+                # Tomamos el estado mínimo (menor número)
+                pl.col("id_status_work_order").min().alias("id_status_work_order")                                        
+            )
+        )
+
     df_result =(
-        df_team
-        .group_by(["portfolio", "rcc_name"])
-        .agg(
-            # Concatenamos las OTs con " - " como separador
-            pl.col("wo_folio").str.join(delimiter=" - ").alias("wo_folio"),
-            # Tomamos el estado mínimo (menor número)
-            pl.col("id_status_work_order").min().alias("id_status_work_order")                                        
+            df_team
+            .with_columns(
+                pl.when(pl.col("id_status_work_order") == 1).then(pl.lit("OT en Proceso"))
+                .when(pl.col("id_status_work_order") == 2).then(pl.lit("OT en Revisión"))
+                .when(pl.col("id_status_work_order") == 3).then(pl.lit("OT Finalizada"))
+                .otherwise(pl.lit("Sin estado"))
+                .alias("id_status_work_order")
+            )
+            .select(
+                pl.col("portfolio").alias("Portafolio"),
+                pl.col("rcc_name").alias("Parque"),
+                pl.col("wo_folio").alias(dict_teams.get(team)[0]),
+                pl.col("id_status_work_order").alias(dict_teams.get(team)[1]),
+            )
         )
-        .with_columns(
-            pl.when(pl.col("id_status_work_order") == 1).then(pl.lit("OT en Proceso"))
-            .when(pl.col("id_status_work_order") == 2).then(pl.lit("OT en Revisión"))
-            .when(pl.col("id_status_work_order") == 3).then(pl.lit("OT Finalizada"))
-            .otherwise(pl.lit("Sin estado"))
-            .alias("id_status_work_order")
-        )
-        .select(
-            pl.col("portfolio").alias("Portafolio"),
-            pl.col("rcc_name").alias("Parque"),
-            pl.col("wo_folio").alias(dict_teams.get(team)[0]),
-            pl.col("id_status_work_order").alias(dict_teams.get(team)[1])
-        )
-    )
 
     return df_result
 
@@ -204,6 +212,153 @@ def equalize_dict_values_length(data, fill_value=None):
         data[key] += [fill_value] * (max_length - len(data[key]))  # Rellenar con el valor deseado
 
     return data
+
+def ot_status_formating(worksheet, sh, num_column:int, num_rows:int):
+    verde_ot_finalizada = {"red": 0.831, "green": 0.929, "blue": 0.737}
+    amarillo_ot_proceso = {"red": 1.0, "green": 0.725, "blue": 0.0}
+    azul_ot_revision = {"red": 0.039, "green": 0.325, "blue": 0.659}
+
+
+
+    validation_requests = []
+    conditional_format_requests = []
+
+    validation_requests.append({
+                    "setDataValidation": {
+                        "range": {
+                            "sheetId": worksheet.id,
+                            "startRowIndex": 1,
+                            "endRowIndex": num_rows + 1,
+                            "startColumnIndex": num_column,
+                            "endColumnIndex": num_column + 1
+                        },
+                        "rule": {
+                            "condition": {
+                                "type": "ONE_OF_LIST",
+                                "values": [
+                                    {"userEnteredValue": "OT Finalizada"},
+                                    {"userEnteredValue": "OT en Proceso"},
+                                    {"userEnteredValue": "OT en Revisión"}
+                                ]
+                            },
+                            "showCustomUi": True,
+                            "strict": True
+                        }
+                    }
+                })
+    
+    conditional_format_requests.append({
+
+                    "addConditionalFormatRule": {
+                        "rule": {
+                            "ranges": [{
+                                "sheetId": worksheet.id,
+                                "startRowIndex": 1,
+                                "endRowIndex": num_rows + 1,
+                                "startColumnIndex": num_column,
+                                "endColumnIndex": num_column + 1
+                            }],
+                            "booleanRule": {
+                                "condition": {
+                                    "type": "TEXT_EQ",
+                                    "values": [{"userEnteredValue": "OT Finalizada"}]
+                                },
+                                "format": {
+                                    "backgroundColor": verde_ot_finalizada,
+                                    "textFormat": {
+                                        "foregroundColor": {"red": 0.0, "green": 0.5, "blue": 0.0},
+                                        "bold": True,
+                                    },
+                                }
+                            }
+                        },
+                        "index": 0
+                    }
+                })
+                
+                # Regla 2: OT en Proceso = Amarillo
+    conditional_format_requests.append({
+
+                    "addConditionalFormatRule": {
+                        "rule": {
+                            "ranges": [{
+                                "sheetId": worksheet.id,
+                                "startRowIndex": 1,
+                                "endRowIndex": num_rows + 1,
+                                "startColumnIndex": num_column,
+                                "endColumnIndex": num_column +1
+                            }],
+                            "booleanRule": {
+                                "condition": {
+                                    "type": "TEXT_CONTAINS",
+                                    "values": [{"userEnteredValue": "OT en Proceso"}]
+                                },
+                                "format": {
+                                    "backgroundColor": amarillo_ot_proceso,
+                                    "textFormat": {
+                                        "foregroundColor": {"red": 0.1, "green": 0.1, "blue": 0.0},
+                                        "bold": True,
+                                    },
+                                }
+                            }
+                        },
+                        "index": 0
+                    }
+                })
+                
+                # Regla 3: OT en Revisión = Azul
+    conditional_format_requests.append({
+
+                    "addConditionalFormatRule": {
+                        "rule": {
+                            "ranges": [{
+                                "sheetId": worksheet.id,
+                                "startRowIndex": 1,
+                                "endRowIndex": num_rows + 1,
+                                "startColumnIndex": num_column,
+                                "endColumnIndex": num_column + 1
+                            }],
+                            "booleanRule": {
+                                "condition": {
+                                    "type": "TEXT_CONTAINS",
+                                    "values": [{"userEnteredValue": "OT en Revisión"}]
+                                },
+                                "format": {
+                                    "backgroundColor": azul_ot_revision,
+                                    "textFormat": {
+                                        "foregroundColor": {"red": 1.0, "green": 1.0, "blue": 1.0},  # Blanco,
+                                        "bold": True,
+                                    },
+                                }
+                            }
+                        },
+                    "index": 0
+                    }
+                    })
+    
+    conditional_format_requests.append({
+    "repeatCell": {
+        "range": {
+            "sheetId": worksheet.id,
+            "startRowIndex": 1,
+            "endRowIndex": num_rows + 1,
+            "startColumnIndex": num_column,
+            "endColumnIndex": num_column + 1
+        },
+        "cell": {
+            "userEnteredFormat": {
+                "verticalAlignment": "MIDDLE",
+                "horizontalAlignment": "CENTER" # Opcional, si lo quieres centrado
+            }
+        },
+        "fields": "userEnteredFormat(verticalAlignment,horizontalAlignment)"
+    }
+    })
+    
+    all_requests = validation_requests + conditional_format_requests
+
+    if all_requests:
+        sh.batch_update({"requests": all_requests})
 
 trigger_dict = {
     "NO_SCHEDULE_TASK" : "Tarea no Programada",
