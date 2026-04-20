@@ -10,6 +10,7 @@ def pcm_monthly(user_number: str) -> None:
 
     
     print("-------------------------------------------------------------------------------------------------------------------------- \n")
+    print("Se actualizarán los datos para las OT's PREVENTIVAS mensuales \n")
     print("\nPara extraer los datos, se le pedirá ingresar el año y el mes deseado.")
 
     print("El programa extraerá datos a partir del año y mes ingresado tomando como referencia la fecha programada para las OT's.\n")

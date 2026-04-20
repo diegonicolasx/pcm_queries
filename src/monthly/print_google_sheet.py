@@ -9,7 +9,7 @@ from typing import Dict
 load_dotenv()
 
 COLUMN_HEADER_DISPLAY = {
-    "OT LAO": "OT LAO\n(corte - lavado)",
+    "OT LAC": "OT LAC\n(corte - lavado)",
 }
 
 

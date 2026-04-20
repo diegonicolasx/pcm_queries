@@ -9,7 +9,7 @@ def pcm_correctives(user_number : str) -> None:
 
     print("-------------------------------------------------------------------------------------------------------------------------- \n")
     print("Este modulo extrae datos de mantenimientos CORRECTIVOS desde fracttal, para luego ordenarlos y crear una hoja en google sheet con el resumen del estado de estos\
-          mantenimientos \n")
+    mantenimientos \n")
     
     print("-------------------------------------------------------------------------------------------------------------------------- \n")
     print("\nPara extraer los datos, se le pedirá ingresar el año y el mes deseado.")

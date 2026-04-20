@@ -27,7 +27,7 @@ def get_kpi(df:pl.DataFrame) -> dict:
             "OT Finalizada": 0,
             "Sin estado": 0
         },
-        "LAO-Lavado, Aseo y Ornato": {
+        "LAC-Lavado y Corte de Vegetacion": {
             "OT en Proceso": 0,
             "OT en Revisión": 0,
             "OT Finalizada": 0,
@@ -40,7 +40,7 @@ def get_kpi(df:pl.DataFrame) -> dict:
         .filter(
             (pl.col("id_status_work_order") != 4) &
             ((pl.col("trigger_description") == "DATE$EVERY$1$MONTHS") |
-             (pl.col("tasks_log_types_description") == "LAO-Lavado, Aseo y Ornato"))
+             (pl.col("tasks_log_types_description").is_in(["LAO-Lavado, Aseo y Ornato","LAC-Lavado y Corte de Vegetacion"])))
         )    
         .select(            
             pl.col("tasks_log_types_description"),
@@ -56,6 +56,16 @@ def get_kpi(df:pl.DataFrame) -> dict:
             .alias("id_status_work_order")
         )      
     )
+
+    df = df.with_columns(
+        pl.when(
+            (pl.col("tasks_log_types_description") == "LAO-Lavado, Aseo y Ornato")
+        )
+        .then(pl.lit("LAC-Lavado y Corte de Vegetacion"))
+        .otherwise(pl.col("tasks_log_types_description"))
+        .alias("tasks_log_types_description")
+    )
+
 
     for team in final_dict.keys():
         for status in final_dict[team].keys():
