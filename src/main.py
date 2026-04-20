@@ -1,8 +1,10 @@
 import polars as pl
 from src.monthly.pcm_monthly import pcm_monthly
 from src.quarterly.pcm_quarterly import pcm_quarterly
+from src.corrective.pcm_correctives import pcm_correctives
 
-print("\nBienvenido al programa de extracción de datos de Fracttal para PCM. \n")
+print("\nBienvenido al programa de extracción de datos de Fracttal para PCM. Con este programa usted podrá actualizar las tablas de estatus de OT's, sean preventivos mensuales\
+      o correctivos mensuales \n")
 
 print("\nAhora, por favor identifiquese, de acuerdo al número que aparece junto a cada nombre:\n")
 print("\t1. Diego Gallegos (DYR)")
@@ -15,8 +17,18 @@ while user_number not in ["1", "2"]:
 
 print("\n")
 
+print("Seleccione el tipo de mantenimiento que desea actualizar: ")
+print("\n")
+
+print("\t1. Preventivos")
+print("\t2. Correctivos")
+
+x = input("Ingrese su opción: ")
+print("\n")
+
 while True:
 
+    
     print("Para actualizar las OT's, ingrese la acción que desea realizar: ")
     print("\n")
 
@@ -27,26 +39,26 @@ while True:
     print("\n")
 
 
-    x = input("Ingrese su opción: ")
+    y = input("Ingrese su opción: ")
 
-    if x not in ["1", "2", "3"]:
+    if y not in ["1", "2", "3"]:
         print("Opción no valida, por favor ingrese nuevamente \n")
         print("\n")
         continue
 
 
     else:
-        if x == "1":
+        if y == "1":
             print("Se actualizaran las OT's mensuales \n")
             pcm_monthly(user_number)
             break
 
-        elif x =="2":
+        elif y =="2":
             print("Se actualizarán  las OT's trimestrales \n")
             pcm_quarterly(user_number)
             break
 
-        elif x =="3":
+        elif y =="3":
             print("Se actualizarán OT's mensuales y trimestrales \n")
 
             pcm_monthly(user_number)

@@ -228,7 +228,7 @@ def ot_status_formating(worksheet, sh, num_column:int, num_rows:int):
                         "range": {
                             "sheetId": worksheet.id,
                             "startRowIndex": 1,
-                            "endRowIndex": num_rows + 1,
+                            "endRowIndex": num_rows ,
                             "startColumnIndex": num_column,
                             "endColumnIndex": num_column + 1
                         },
@@ -254,7 +254,7 @@ def ot_status_formating(worksheet, sh, num_column:int, num_rows:int):
                             "ranges": [{
                                 "sheetId": worksheet.id,
                                 "startRowIndex": 1,
-                                "endRowIndex": num_rows + 1,
+                                "endRowIndex": num_rows,
                                 "startColumnIndex": num_column,
                                 "endColumnIndex": num_column + 1
                             }],
@@ -284,7 +284,7 @@ def ot_status_formating(worksheet, sh, num_column:int, num_rows:int):
                             "ranges": [{
                                 "sheetId": worksheet.id,
                                 "startRowIndex": 1,
-                                "endRowIndex": num_rows + 1,
+                                "endRowIndex": num_rows,
                                 "startColumnIndex": num_column,
                                 "endColumnIndex": num_column +1
                             }],
@@ -314,7 +314,7 @@ def ot_status_formating(worksheet, sh, num_column:int, num_rows:int):
                             "ranges": [{
                                 "sheetId": worksheet.id,
                                 "startRowIndex": 1,
-                                "endRowIndex": num_rows + 1,
+                                "endRowIndex": num_rows ,
                                 "startColumnIndex": num_column,
                                 "endColumnIndex": num_column + 1
                             }],
