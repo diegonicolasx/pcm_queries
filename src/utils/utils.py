@@ -110,7 +110,7 @@ def add_portfolio_and_name(df:pl.DataFrame, user_number:str)->pl.DataFrame:
         results = Path(os.getenv("DYR_PATH"))
 
     elif user_number == "2":
-        results = Path(os.getenv("VITTORIO_PATH"))    
+        results = Path(os.getenv("LENIN_PATH"))    
 
     plant_db = pl.read_parquet(results / "plant_db.parquet").select(pl.col("fracttal_name"), pl.col("portfolio"), pl.col("rcc_name"))
 

@@ -8,7 +8,7 @@ o correctivos mensuales \n")
 
 print("\nAhora, por favor identifiquese, de acuerdo al número que aparece junto a cada nombre:\n")
 print("\t1. Diego Gallegos (DYR)")
-print("\t2. Vittorio Neira.")
+print("\t2. Lenin Heredia.")
 user_number = input("\nIngrese el número correspondiente a su nombre: ")
 
 while user_number not in ["1", "2"]:
