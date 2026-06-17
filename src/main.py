@@ -7,7 +7,7 @@ print("\nBienvenido al programa de extracción de datos de Fracttal para PCM. Co
 o correctivos mensuales \n")
 
 print("\nAhora, por favor identifiquese, de acuerdo al número que aparece junto a cada nombre:\n")
-print("\t1. Diego Gallegos (DYR)")
+print("\t1. Diego Gallegos (DYR).")
 print("\t2. Lenin Heredia.")
 user_number = input("\nIngrese el número correspondiente a su nombre: ")
 
