@@ -1,5 +1,5 @@
 import polars as pl
-from src.monthly.extract_data_fracttal import extract_wo_api
+from src.monthly.extract_data_fracttal import extract_wo_api, extract_requests_api
 from src.utils.utils import validate_year, validate_month, init_date, end_date
 from src.corrective.transformed_corrective import transform_correctives
 from src.corrective.print_corrective_sheet import print_corrective_sheet
@@ -37,6 +37,10 @@ def pcm_correctives(user_number : str) -> None:
     print(f"\nLa fecha de extracción es: {since_date} hasta {until_date}\n")
     
     df_wo = extract_wo_api(since_date= since_date, until_date= until_date)
+
+    df_requests = extract_requests_api(since_date= since_date, until_date= until_date)
+
+    df_wo = df_wo.join(df_requests, left_on="id_request", right_on="id_code", how="left")
 
     df_corrective = transform_correctives(df_wo, user_number)
 
