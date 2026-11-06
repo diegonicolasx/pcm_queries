@@ -40,10 +40,15 @@ def transform_correctives(wo_dataframe : pl.DataFrame, user_number: str):
                     pl.col("wo_folio"),
                     pl.col("id_status_work_order"),
                     pl.col("description"),
-                    pl.col("id_request")
+                    pl.col("id_request"),
+                    pl.col("event_date"),
+                    pl.col("Fecha creación ST")
                 )
                 .unique()   
-                .with_columns(pl.col("wo_folio").cast(pl.Utf8).alias("wo_folio"))
+                .with_columns(pl.col("wo_folio").cast(pl.Utf8).alias("wo_folio"),
+                              pl.col("event_date").dt.strftime("%d-%m-%Y").alias("event_date"),
+                              pl.col("Fecha creación ST").dt.strftime("%d-%m-%Y").alias("Fecha creación ST")
+                              )
 
         )
 
@@ -64,10 +69,11 @@ def transform_correctives(wo_dataframe : pl.DataFrame, user_number: str):
                 pl.col("Equipo"),
                 pl.col("id_status_work_order").alias("Estado"),
                 pl.col("description").alias("Descripción"),
-                pl.col("id_request").alias("ST")
+                pl.col("id_request").alias("ST"),
+                pl.col("event_date").alias("Fecha de incidente"),
+                pl.col("Fecha creación ST").alias("Fecha creación ST")
             )
         )
-
 
         if count == 1:
             df_joined = df

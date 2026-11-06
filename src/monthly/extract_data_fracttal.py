@@ -2,9 +2,11 @@ import requests
 import polars as pl
 import numpy as np
 from datetime import datetime
+from dateutil.relativedelta import relativedelta
 from src.utils.utils import (
     schema_work_orders, 
-    schema_work_orders_2, 
+    schema_work_orders_2,
+    schema_work_requests, 
     equalize_dict_values_length,     
     normalizar_centro_costos,
     get_token
@@ -149,6 +151,121 @@ def extract_wo_api(since_date:str, until_date:str) -> pl.DataFrame:
     )
 
     return ot_df
+
+def extract_requests_api(since_date:str, until_date:str) ->  pl.DataFrame:
+
+    print("\nSe extraerán los datos de las solicitudes de trabajo.")
+
+    numero_final = 1000000
+
+    array = np.arange(0, numero_final + 1, 100)
+
+    r_df = pl.DataFrame(schema = schema_work_requests)
+
+    token = get_token()        
+    
+    headers = {
+        "Authorization": f"Bearer {token}"}
+
+    year = int(since_date.split("-")[0])
+    month = since_date.split("-")[1]
+
+    date = datetime(year, int(month), 1) - relativedelta(months=2)
+
+    new_since_date = f"{date.year}-{date.month:02d}-01T00:00:00-03"
+
+    count = 0
+
+    for i in array:        
+
+        count = count + 1
+
+        print(f"\nIteración {count}")
+
+        url_object = "https://app.fracttal.com/api/work_requests"
+        
+        params = {
+            "since" : new_since_date,                  
+            "until" : until_date,
+            "type_date" : "date_incident",
+            "start" : i,
+            "limit" : 100
+        }
+    
+        r = requests.get(url_object, headers=headers, params=params)
+
+        try:
+            data_raw = r.json()["data"]
+
+        except:
+            r = requests.get(url_object, headers=headers, params=params)
+            data_raw = r.json()["data"]
+
+
+        if data_raw:
+            print("\nSe extraerán datos.")
+            dict_data = dict()
+            try:            
+                for j in data_raw:
+                    data = dict(j)
+                    keys = data.keys()                    
+                    keys_2 = dict_data.keys()
+                    #print("\nAhora:")
+                    for key in keys:                        
+                        #print(f"-{key}")                        
+                        if key not in keys_2:
+                            dict_data.update({key:[]})
+                        dict_data[key].append(data[key])
+            except Exception as e:
+                print(f"\nError al extraer datos: {e}")
+
+            keys = dict_data.keys()
+            #for i in keys:
+            #    print(i)
+
+            df = pl.DataFrame(dict_data, schema=schema_work_requests, strict=False)
+            
+            r_df = pl.concat([r_df, df])
+            print(f"\nDatos extraídos en la iteración {count}")
+            
+        else:
+            print("No hay más datos disponibles.")
+            break
+
+    input_date_format = "%Y-%m-%dT%H:%M:%S%.f%:z"   
+
+    r_df = (
+        r_df
+        .with_columns(
+            pl.col("date").str.to_datetime(input_date_format).dt.convert_time_zone("America/Santiago"),
+            pl.col("date_solution").str.to_datetime(input_date_format).dt.convert_time_zone("America/Santiago"),
+            pl.col("date_status").str.to_datetime(input_date_format).dt.convert_time_zone("America/Santiago"),
+            pl.col("date_incident").str.to_datetime(input_date_format).dt.convert_time_zone("America/Santiago"),
+            pl.col("date_maintenance").str.to_datetime(input_date_format).dt.convert_time_zone("America/Santiago"),            
+        )
+    )
+
+    r_df = (
+        r_df
+        .with_columns(
+            pl.col("date").dt.strftime("%Y-%m-%d %H:%M").str.to_datetime(),
+            pl.col("date_solution").dt.strftime("%Y-%m-%d %H:%M").str.to_datetime(),
+            pl.col("date_status").dt.strftime("%Y-%m-%d %H:%M").str.to_datetime(),
+            pl.col("date_incident").dt.strftime("%Y-%m-%d %H:%M").str.to_datetime(),
+            pl.col("date_maintenance").dt.strftime("%Y-%m-%d %H:%M").str.to_datetime(),        
+        )
+    )
+    r_df = (
+        r_df.select(
+            pl.col("id_code"),
+            pl.col("date").alias("Fecha creación ST"),
+        )
+    )
+
+    print(r_df)
+
+    return r_df
+
 
 if __name__ == "__main__":
     import calendar
