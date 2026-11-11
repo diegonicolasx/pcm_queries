@@ -139,16 +139,34 @@ def extract_wo_api(since_date:str, until_date:str) -> pl.DataFrame:
 
     ## Esta parte corrige las OT de baño, que aparece MTM como responable, pero son externos contratados por el cliente
 
-    ot_df = ot_df.with_columns(
-            pl.when(
-                (pl.col("tasks_log_types_description") == "MTM-Mantenimiento Menor") & 
-                (pl.col("groups_description") == "Baño") &
-                (pl.col("groups_1_description").is_in(["Carbonfree chile SPA", "CFC holdings SPA"])) 
-            )
-            .then(pl.lit("SSMA-Salud, Seguridad y Medio Ambiente"))
-            .otherwise(pl.col("tasks_log_types_description"))
-            .alias("tasks_log_types_description")  
-    )
+    i_year = int(since_date[0:4])
+    i_month = int(since_date[5:7])
+    i_day = int(since_date[8:10])
+
+    if datetime(i_year,i_month,i_day) < datetime(2026,11,1,0,0,0):
+
+        ot_df = ot_df.with_columns(
+                pl.when(
+                    (pl.col("tasks_log_types_description") == "MTM-Mantenimiento Menor") & 
+                    (pl.col("groups_description") == "Baño") &
+                    (pl.col("groups_1_description").is_in(["Carbonfree chile SPA", "CFC holdings SPA"])) 
+                )
+                .then(pl.lit("SSMA-Salud, Seguridad y Medio Ambiente"))
+                .otherwise(pl.col("tasks_log_types_description"))
+                .alias("tasks_log_types_description")  
+        )
+
+    else:
+
+        ot_df = ot_df.with_columns(
+                pl.when(
+                    (pl.col("tasks_log_types_description") == "MTM-Mantenimiento Menor") & 
+                    (pl.col("description") == "Control de residuos domésticos e identificación de hallazgos ambientales en la instalación - 1M") 
+                )
+                .then(pl.lit("SSMA-Salud, Seguridad y Medio Ambiente"))
+                .otherwise(pl.col("tasks_log_types_description"))
+                .alias("tasks_log_types_description")  
+        )
 
     return ot_df
 
